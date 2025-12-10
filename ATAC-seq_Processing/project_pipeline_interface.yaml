@@ -1,0 +1,34 @@
+pipeline_name: PEPATAC
+pipeline_type: project
+path: pipelines/pepatac_collator.py
+output_schema: pepatac_output_schema.yaml
+command_template: >
+  {pipeline.path} 
+  --config {looper.pep_config}
+  -O {looper.results_subdir}
+  -P {compute.cores}
+  -M {compute.mem}
+  -n {project.name}
+  -r {looper.results_subdir}
+compute:
+  singularity_image: ${SIMAGES}pepatac
+  docker_image: databio/pepatac
+  bulker_crate: databio/pepatac:1.0.10
+  size_dependent_variables: resources-project.tsv
+
+bioconductor:
+  readFunName: readPepatacPeakBeds
+  readFunPath: BiocProject/readPepatacPeakBeds.R
+
+pipestat:
+  pipeline_name: PEPATAC
+  pipeline_type: project
+  schema_path: pipeline_pipestat/pipestat_output_schema.yaml
+  command_template: >
+    {pipeline.path}
+    --config {looper.pep_config}
+    -O {looper.results_subdir}
+    -P {compute.cores}
+    -M {compute.mem}
+    -n {project.name}
+    -r {looper.results_subdir}
