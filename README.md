@@ -24,7 +24,7 @@ Raw data available with controlled access at dbGaP (https://www.ncbi.nlm.nih.gov
 10. RNA-seq_Processing/Differential_analisis_per_organ.R
 11. RNA-seq_Processing/Venn_All_p_val.R
 12. RNA-seq_Processing/Hazards_ratio_filtering.R
-13. Box_Plots.py
+13. RNA-seq_Processing/Box_Plots.py
 
 ## ATAC-seq Processing
 
@@ -38,7 +38,6 @@ Raw data available with controlled access at dbGaP (https://www.ncbi.nlm.nih.gov
 8. ATAC-seq_Processing/Differential_analisis_Batch_Correction.R
 9. ATAC-seq Processing/Consensus_peaks_bedfiles.R
 10. ATAC-seq Processing/Genomic_Annotation.R
-11. Profile_heatmaps.R
 
 ## Peak-to-Gene Association Analyses
 
@@ -69,5 +68,4 @@ Raw data available with controlled access at dbGaP (https://www.ncbi.nlm.nih.gov
 1. Visualizations/Genome_tracks.ini
 2. Visualizations/Genome_tracks.R
 3. Visualizations/Forest_plots.R
-
 
