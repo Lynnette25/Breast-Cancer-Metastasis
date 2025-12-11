@@ -8,211 +8,209 @@
 # 	  4) Heatmaps of differentially expressed genes per organ
 ################################################################################
 
+
 library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(limma)  # Load the limma package for batch effect correction
-library(pheatmap)  # Load the pheatmap package
+library(DESeq2)
+library(EnhancedVolcano)
+library(pheatmap)
 
-# Step 1: Read and prepare data
-full_data <- read_csv("FULL_gene_data_PE_MET_GTEX_one_to_one.csv")
+# Output dir
+output_dir <- "PE_counts"
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Step 1: Read data
+full_data <- read_csv("FULL_gene_data_PE_MET_GTEX_one_to_one.csv", show_col_types = FALSE)
 full_data <- as.data.frame(full_data)
 
-# Define the organs to analyze
+# Clean up gene IDs (remove version numbers if present)
+full_data$Geneid <- sub("\\..*$", "", full_data$Geneid)
+
+# Ensure gene_name exists
+if (!"gene_name" %in% colnames(full_data)) {
+    full_data$gene_name <- full_data$Geneid
+}
+
+# Define organs to analyze
 organs_to_analyze <- c("Breast", "Liver", "Lung")
 
-# Loop through each organ
 for (organ_name in organs_to_analyze) {
-    
-
     cat("Processing organ:", organ_name, "\n")
 
+    # Identify columns for this organ
     organ_columns <- colnames(full_data)[grepl(organ_name, colnames(full_data))]
+    tumor_columns <- organ_columns[grepl("Tumor", organ_columns, ignore.case = TRUE)]
+    normal_columns <- organ_columns[grepl("Normal", organ_columns, ignore.case = TRUE)]
 
-    tumor_columns <- organ_columns[grepl("Tumor", organ_columns)]
-    
-    normal_columns <- organ_columns[grepl("Normal", organ_columns)]
-    print(tumor_columns)
-    print(normal_columns)
-        # Select only normal and tumor columns for PCA
-    pca_data <- full_data %>%
-    dplyr::select(gene_name, Geneid, all_of(c(normal_columns, tumor_columns))) %>% drop_na()
-
-    count_data <- as.matrix(pca_data[, -(1:2)])  # remove gene name columns
-    filtered_data <- pca_data[, c("gene_name", "Geneid")]
-
-    # Normalize and log-transform
-    normalized_counts <- t(apply(count_data, 1, function(x) x / sum(x) * median(rowSums(count_data, na.rm = TRUE))))
-    log_counts <- log2(normalized_counts + 1)
-
-    # Remove low variance rows
-    row_variances <- apply(log_counts, 1, var)
-    low_variance_rows <- row_variances < 1e-2 | is.na(row_variances)
-
-    log_counts <- log_counts[!low_variance_rows, ]
-    filtered_data <- filtered_data[!low_variance_rows, ]
-
-    # Use both gene_name and Geneid for clarity (or just gene_name if you prefer)
-    rownames(log_counts) <- paste0(filtered_data$gene_name, " (", filtered_data$Geneid, ")")
-
-
-    sample_names <- colnames(log_counts)
-    group <- ifelse(grepl("Normal", sample_names, ignore.case = TRUE), "Normal", 
-                    ifelse(grepl("Tumor", sample_names, ignore.case = TRUE), "Tumor", NA))
-
-    
-
-
-    # Create design matrix
-    design <- model.matrix(~ 0 + group ) 
-    colnames(design) <- gsub("group", "", colnames(design))  
-    
-    if (nrow(design) != ncol(log_counts)) {
-        stop("Error: Design matrix dimensions do not match log count data.")
+    if (length(tumor_columns) == 0 || length(normal_columns) == 0) {
+        warning(paste0("No tumor or normal columns found for ", organ_name, " — skipping."))
+        next
     }
 
-    # Fit the model and apply batch effect correction
-    fit <- lmFit(log_counts, design)
+    # Select gene id/name + the organ count columns
+    sub_df <- full_data %>%
+        dplyr::select(gene_name, Geneid, all_of(c(normal_columns, tumor_columns))) %>%
+        drop_na()
 
+    # Build count matrix
+    count_data <- as.matrix(sub_df[, -(1:2)])  # remove gene_name & Geneid
+    # Ensure integer counts (DESeq2 requires integers)
+    storage.mode(count_data) <- "double"
+    count_data <- round(count_data)            # round just in case
+    storage.mode(count_data) <- "integer"
 
-    # Perform PCA on the corrected counts
-    pca_result <- prcomp(t(log_counts), center = TRUE, scale. = TRUE)
-    explained_variance <- summary(pca_result)$importance[2, ]
-    variance_pc1 <- round(explained_variance[1] * 100, 2)
-    variance_pc2 <- round(explained_variance[2] * 100, 2)
+    # Set rownames as Geneid (unique) — keep gene_name separately for labels
+    rownames(count_data) <- sub_df$Geneid
 
-    short_sample_names <- sub("^(R\\d+).*", "\\1", sample_names)
+    # Build colData (sample metadata)
+    sample_names <- colnames(count_data)
+    condition <- ifelse(grepl("Normal", sample_names, ignore.case = TRUE), "Normal",
+                        ifelse(grepl("Tumor", sample_names, ignore.case = TRUE), "Tumor", NA))
+    # Source: assume Normal == GTEx, Tumor == Metastasis
+    source <- ifelse(condition == "Normal", "GTEx",
+                     ifelse(condition == "Tumor", "Metastasis", NA))
 
-    # Create a data frame for PCA results
-    pca_df <- data.frame(Sample = short_sample_names, 
-                         PC1 = pca_result$x[, 1], 
-                         PC2 = pca_result$x[, 2], 
-                         Group = group)
+    coldata <- data.frame(
+        sample = sample_names,
+        condition = factor(condition, levels = c("Normal", "Tumor")),
+        source = factor(source)
+    )
+    rownames(coldata) <- coldata$sample
 
-    
+    # Filter genes with very low counts across all samples (pre-filter)
+    keep <- rowSums(count_data >= 10) >= 2   # keep genes with >=10 counts in >=2 samples
+    count_data_filt <- count_data[keep, ]
+    if (nrow(count_data_filt) < 50) {
+        warning("Very few genes pass the filter for ", organ_name)
+    }
 
-    # Create a second PCA plot (corrected)
-    png(paste0("PE_counts/pca_plot_", organ_name, "_short-label.png"), width = 10, height = 8)
-    ggplot(pca_df, aes(x = PC1, y = PC2, color = Group, label = Sample)) +
-        geom_point() +
-        geom_text(vjust = 1.5, hjust = 0.5, size = 3) +  
-        labs(title = paste("PCA of Normal and Tumor Samples -", organ_name),
-             x = paste("PC1 (", variance_pc1, "%)", sep = ""),
-             y = paste("PC2 (", variance_pc2, "%)", sep = "")) +
-        theme_minimal() +
-        scale_color_manual(values = c("Normal" = "blue", "Tumor" = "red")) + 
-        theme(legend.title = element_blank()) 
+    # Create DESeq2 dataset with batch/source correction in design
+    dds <- DESeqDataSetFromMatrix(countData = count_data_filt,
+                                  colData = coldata,
+                                  design = ~ source + condition)
+
+    # Relevel condition to ensure results use Tumor vs Normal as desired (Tumor as second level)
+    dds$condition <- relevel(dds$condition, ref = "Normal")
+
+    # Run DESeq
+    dds <- DESeq(dds, quiet = TRUE)
+
+    # Extract results for Tumor vs Normal (adjusted for source)
+    res <- results(dds, contrast = c("condition", "Tumor", "Normal"), alpha = 0.05)
+    res_df <- as.data.frame(res)
+    res_df$Geneid <- rownames(res_df)
+
+    # Add gene_name (if available)
+    gene_map <- sub_df %>% dplyr::select(Geneid, gene_name) %>% distinct()
+    res_df <- left_join(res_df, gene_map, by = "Geneid")
+
+    # Save full results
+    write.csv(res_df, file.path(output_dir, paste0("differential_expression_", organ_name, "_DESeq2_results.csv")), row.names = FALSE)
+
+    # Variance stabilizing transform for PCA and heatmaps
+    vst_dds <- vst(dds, blind = FALSE)
+    vst_mat <- assay(vst_dds)
+
+    # PCA
+    pca_res <- prcomp(t(vst_mat), center = TRUE, scale. = TRUE)
+    explained_var <- (pca_res$sdev^2) / sum(pca_res$sdev^2)
+    pc1_pct <- round(explained_var[1] * 100, 2)
+    pc2_pct <- round(explained_var[2] * 100, 2)
+
+    pca_df <- data.frame(Sample = rownames(coldata),
+                         PC1 = pca_res$x[, 1],
+                         PC2 = pca_res$x[, 2],
+                         Condition = coldata$condition,
+                         Source = coldata$source,
+                         Short = sub("^(R\\d+).*", "\\1", rownames(coldata)))
+
+    png(file.path(output_dir, paste0("pca_plot_", organ_name, "_short-label.png")), width = 1000, height = 800)
+    print(
+        ggplot(pca_df, aes(x = PC1, y = PC2, color = Condition, shape = Source, label = Short)) +
+            geom_point(size = 3) +
+            geom_text(vjust = -1, hjust = 0.5, size = 3) +
+            labs(title = paste("PCA of VST counts -", organ_name),
+                 x = paste0("PC1 (", pc1_pct, "%)"),
+                 y = paste0("PC2 (", pc2_pct, "%)")) +
+            theme_minimal() +
+            scale_color_manual(values = c("Normal" = "blue", "Tumor" = "red")) +
+            theme(legend.title = element_blank())
+    )
     dev.off()
 
-    cat("Finished processing:PCA")
+    cat("PCA done for", organ_name, "\n")
 
-    # Adding Differential expression and volcano plots
-    design <- model.matrix(~ 0 + group )  # Include organ in the model
-    colnames(design) <- gsub("group", "", colnames(design))  # Clean up column names
+    # Volcano plot with EnhancedVolcano
+    # Ensure we have log2FoldChange and padj columns
+    res_df$log2FoldChange <- res_df$log2FoldChange
+    res_df$padj <- res_df$padj
+    # Some packages expect column names exactly; also remove NA genes
+    volcano_tbl <- res_df %>% dplyr::filter(!is.na(log2FoldChange))
 
-    fit <- lmFit(log_counts, design)
-    contrast_matrix <- makeContrasts(Tumor = Tumor - Normal, levels = design)
-    fit2 <- contrasts.fit(fit, contrast_matrix)
-    fit2 <- eBayes(fit2)
-
-    # Get the results for differential expression
-    results <- topTable(fit2, adjust = "fdr", sort.by = "P", number = Inf)
-    
-    # Create Volcano Plot
-    results$Significance <- -log10(results$P.Value)
-    results$Threshold <- 0.05  # Set threshold for significance
-
-    png(paste0("PE_counts/volcano_plot_", organ_name, ".png"), width = 8, height = 6)
-    ggplot(results, aes(x = logFC, y = Significance)) +
-        geom_point(aes(color = (P.Value < 0.05)), alpha = 0.5) +
-        scale_color_manual(values = c("grey", "red")) +
-        geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
-        geom_vline(xintercept = c(-1, 1), linetype = "dotted") +
-        labs(title = paste("Volcano Plot of Differential Expression -", organ_name),
-             x = "Log Fold Change",
-             y = "-Log10(p-value)") +
-        theme_minimal() 
-    dev.off()
-
-    # Create a  volcano plot and save it to a file
-    output_file <- file.path(output_dir, paste0("Enhanced_Volcano_plot_", organ_name, ".png"))
-    png(output_file, width = 800, height = 600)
-    EnhancedVolcano(toptable = results,
+    png(file.path(output_dir, paste0("Enhanced_Volcano_plot_", organ_name, ".png")), width = 900, height = 700)
+    EnhancedVolcano(toptable = volcano_tbl,
+                    lab = volcano_tbl$gene_name,
                     x = "log2FoldChange",
                     y = "padj",
-                    lab = results$gene_name,
-                    xlim = c(-7, 7),
-                    ylim = c(0, 7.5),
-                    pCutoff = 0.05,  # Adjusted p-value cutoff
-                    FCcutoff = 1.5)
+                    pCutoff = 0.05,
+                    FCcutoff = 1.5,
+                    title = paste("Tumor vs Normal -", organ_name),
+                    subtitle = "DESeq2 (adjusted for source)")
     dev.off()
 
+    # Basic ggplot2 volcano (for raw p-values too)
+    volcano_gg <- volcano_tbl %>%
+        mutate(Significance = -log10(pvalue),
+               Sig = ifelse(padj < 0.05, "FDR<0.05", "NS"))
 
-    cat("Finished processing:Volcano")
-
-	results <- results[ , -1]
-
-# Extract only the Ensembl ID from the ID column
-	resultsf$ID <- sub(".*\\((ENSG[0-9]+)\\)", "\\1", results$ID)
-
-    write.csv(results, paste0("PE_counts/differential_expression_", organ_name, "_results_Met_Gtex_corrected.csv"), row.names = TRUE)
-
-    results$log2FoldChange <- results$logFC  # Rename or ensure the column for log2FoldChange
-    results$padj <- results$adj.P.Val  
-
-    # Create a new data frame with necessary columns
-    corrected_results <- data.frame(
-        log2FoldChange = results$log2FoldChange, 
-        padj = results$padj, 
-        gene = rownames(results)  # Use row names as gene identifiers
+    png(file.path(output_dir, paste0("volcano_plot_", organ_name, ".png")), width = 800, height = 600)
+    print(
+        ggplot(volcano_gg, aes(x = log2FoldChange, y = Significance, color = Sig)) +
+            geom_point(alpha = 0.6) +
+            geom_vline(xintercept = c(-1, 1), linetype = "dotted") +
+            geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
+            labs(title = paste("Volcano Plot -", organ_name),
+                 x = "log2(Fold Change)",
+                 y = "-log10(p-value)") +
+            theme_minimal() +
+            scale_color_manual(values = c("NS" = "grey", "FDR<0.05" = "red"))
     )
-
-    # Set NA for adjusted p-values when thresholding, optional
-    corrected_results[is.na(corrected_results$padj), "padj"] <- 1
-
-    library(EnhancedVolcano)
-
-    output_file <-  paste0("PE_counts/Corrected_Volcano_plot_", organ_name, ".png")
-    png(output_file, width = 800, height = 600)
-    EnhancedVolcano(toptable = corrected_results,
-                x = "log2FoldChange",
-                y = "padj",
-                lab = corrected_results$gene,
-                xlim = c(-4, 7),
-                ylim = c(0, 40),
-                pCutoff = 0.05,  # Adjusted p-value cutoff
-                FCcutoff = 1.5)
     dev.off()
-    cat("Finished processing:Volcano 2")
-    threshold <- 0.05
 
-    # Create a heatmap of significant results
-    significant_results <- results[results$P.Value < threshold, ]
-    top_genes <- significant_results %>% 
-        arrange(desc(abs(logFC)))
+    cat("Volcano done for", organ_name, "\n")
 
-    # Get gene names
-    selected_genes <- rownames(top_genes)
+    # Heatmap of top significant genes (padj < 0.05). If none, choose top 50 by padj.
+    sig_genes <- volcano_tbl %>% filter(!is.na(padj) & padj < 0.05) %>% arrange(padj)
+    if (nrow(sig_genes) == 0) {
+        # fallback: top 50 genes by smallest pvalue
+        warning("No genes passed padj < 0.05 for ", organ_name, "- using top 50 by p-value for heatmap.")
+        top_genes <- head(volcano_tbl %>% arrange(pvalue), 50)$Geneid
+    } else {
+        top_genes <- head(sig_genes$Geneid, 200)  # select up to 200 top genes for the heatmap
+    }
 
-    # Subset original log counts data for selected genes
-    heatmap_data <- log_counts[selected_genes, ]
+    # Subset vst matrix and scale for heatmap
+    ht_mat <- vst_mat[top_genes, , drop = FALSE]
+    # If single gene or small number, pheatmap may require a matrix; ensure dimensions
+    if (nrow(ht_mat) > 1) {
+        ht_scaled <- t(scale(t(ht_mat)))
+    } else {
+        ht_scaled <- ht_mat
+    }
 
-    # Normalize for heatmap
-    heatmap_data <- t(scale(t(heatmap_data)))
-
-    custom_colors <- colorRampPalette(c("blue", "white", "red"))(50)
-
-    png(paste0("PE_counts/heatmap_", organ_name, "_V2.png"), width = 1400, height = 800)
-    pheatmap(heatmap_data,
+    png(file.path(output_dir, paste0("heatmap_", organ_name, "_DESeq2.png")), width = 1400, height = 900)
+    pheatmap(ht_scaled,
              show_rownames = FALSE,
              show_colnames = TRUE,
              clustering_distance_rows = "euclidean",
              clustering_distance_cols = "euclidean",
              clustering_method = "complete",
-             main = paste("Heatmap of Top Differentially Expressed Genes -", organ_name),
-             color = custom_colors)
+             main = paste("Heatmap of DE genes -", organ_name),
+             annotation_col = data.frame(Condition = coldata$condition, Source = coldata$source))
     dev.off()
-    
-    cat("Finished processing organ:", organ_name, "\n")
+
+    cat("Heatmap done for", organ_name, "\n")
+    cat("Finished processing organ:", organ_name, "\n\n")
 }
