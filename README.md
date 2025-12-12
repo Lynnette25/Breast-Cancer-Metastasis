@@ -25,6 +25,7 @@ Raw data available with controlled access at dbGaP (https://www.ncbi.nlm.nih.gov
 11. RNA-seq_Processing/Venn_All_p_val.R
 12. RNA-seq_Processing/Hazards_ratio_filtering.R
 13. RNA-seq_Processing/Box_Plots.py
+14. RNA-seq_Processing/Pathways.R
 
 ## ATAC-seq Processing
 
