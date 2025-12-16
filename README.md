@@ -59,10 +59,10 @@ Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.go
 5. Footprinting/differential_tf_binding.R
 6. Footprinting/modified_bin_detect.R
 
-## TFSEE
-1. TFSEE/create_dataset_for_tfsee.R
-2. TFSEE/TFSEE.R
-3. TFSEE/human_tfs.txt
+## TFAS
+1. TFAS/create_dataset_for_tfsee.R
+2. TFAS/TFSEE.R
+3. TFAS/human_tfs.txt
 
 ## Visualizations
 
