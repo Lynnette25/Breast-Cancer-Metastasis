@@ -2,12 +2,12 @@
 
 Repository to store code used for the analyses presented in "Dissecting The Enhancer Logic in Breast Cancer Metastasis Through Transcriptional, Chromatin Accessibility Profiling and Footprint-Inferred Transcription Factor Activity". 
 
-Please cite our paper published in Molecular Genomics: https://
+Please cite our paper published in Molecular Cancer Research: https://
 
 ### Data availability:
 Processed data available at GEO (https://www.ncbi.nlm.nih.gov/geo/). 
 
-Raw data available with controlled access at dbGaP (https://www.ncbi.nlm.nih.gov/gap/).
+Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.gov/gap/](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs003363.v1.p1)).
 
 
 ## RNA-seq Processing
