@@ -5,7 +5,8 @@ Repository to store code used for the analyses presented in "Dissecting The Enha
 Please cite our paper published in Molecular Cancer Research: https://
 
 ### Data availability:
-Processed data available at GEO (https://www.ncbi.nlm.nih.gov/geo/). 
+Processed data available at ([https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE316389]GSE316389) (ATAC-seq related files) and ([https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE316391]GSE316391)(RNA-seq related files)
+. 
 
 Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.gov/gap/](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs003363.v1.p1)).
 
