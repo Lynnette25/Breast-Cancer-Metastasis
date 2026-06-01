@@ -21,12 +21,11 @@ Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.go
 6. RNA-seq_Processing/counts_PE.sh
 7. RNA-seq_Processing/Wranglin_counts_file_for_analisis.py
 8. RNA-seq_Processing/Differential_analisis_SV.R
-9. RNA-seq_Processing/Merging_MET_GTEX_datasets.R
-10. RNA-seq_Processing/Differential_analisis_per_organ.R
-11. RNA-seq_Processing/Venn_All_p_val.R
-12. RNA-seq_Processing/Hazards_ratio_filtering.R
-13. RNA-seq_Processing/Box_Plots.py
-14. RNA-seq_Processing/Pathways.R
+9. RNA-seq_Processing/Hazards_ratio_filtering.R
+10. RNA-seq_Processing/Box_Plots.py
+11. RNA-seq_Processing/AURORA_Plots.R
+12. RNA-seq_Processing/Hypergeometric_test.R
+13. RNA-seq_Processing/C2_Pathways.R
 
 ## ATAC-seq Processing
 
@@ -59,11 +58,13 @@ Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.go
 4. Footprinting/prepare_unified_peak_set.R
 5. Footprinting/differential_tf_binding.R
 6. Footprinting/modified_bin_detect.R
+7. Footprinting/ESR1_binding_anal.R
 
 ## TFAS
 1. TFAS/create_dataset_for_tfsee.R
 2. TFAS/TFSEE.R
 3. TFAS/human_tfs.txt
+4. TFAS/REMAP_Data_Wrangling.md
 
 ## Visualizations
 
