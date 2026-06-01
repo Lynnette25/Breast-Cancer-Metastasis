@@ -8,7 +8,7 @@ Please cite our paper published in Molecular Cancer Research: https://
 Processed data available at ([GSE316389](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE316389)) (ATAC-seq related files) and ([GSE316391](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE316391))(RNA-seq related files)
 . 
 
-Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.gov/gap/](https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs003363.v1.p1)).
+Raw data available with controlled access at dbGaP ([https://www.ncbi.nlm.nih.gov/gap/](https://www.ncbi.nlm.nih.gov/projects/gapprev/gap/cgi-bin/study.cgi?study_id=phs003363.v1.p1)).
 
 
 ## RNA-seq Processing
