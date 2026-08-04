@@ -1,6 +1,6 @@
 # Breast Cancer Matastasis 2026
 
-Repository to store code used for the analyses presented in "Dissecting The Enhancer Logic in Breast Cancer Metastasis Through Transcriptional, Chromatin Accessibility Profiling and Footprint-Inferred Transcription Factor Activity". 
+Repository to store code used for the analyses presented in "Integrative Transcriptional and Chromatin Analyses Reveal Enhancer-Mediated Regulatory Programs Driving Breast Cancer Metastasis". 
 
 Please cite our paper published in Molecular Cancer Research: https://
 
