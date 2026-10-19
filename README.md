@@ -5,7 +5,7 @@ Repository to store code used for the analyses presented in "Integrative Transcr
 Please cite our paper published in Molecular Cancer Research: https://
 
 ### Data availability:
-Counts matris for RNA and ATAC seq are found in the Data folder of this repository.
+Counts matrix for RNA and ATAC seq are found in the Data folder of this repository.
 
 Processed data available at ([GSE316389](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE316389)) (ATAC-seq related files) and ([GSE316391](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE316391))(RNA-seq related files)
 .  
