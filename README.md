@@ -2,7 +2,7 @@
 
 Repository to store code used for the analyses presented in "Integrative Transcriptional and Chromatin Analyses Reveal Enhancer-Mediated Regulatory Programs Driving Breast Cancer Metastasis". 
 
-Please cite our paper published in Molecular Cancer Research: [https://](https://doi.org/10.1158/1541-7786.MCR-26-0065)
+Please cite our paper published in Molecular Cancer Research: [Integrative Transcriptional and Chromatin Analyses Reveal Enhancer-Mediated Regulatory Programs Driving Breast Cancer Metastasi](https://doi.org/10.1158/1541-7786.MCR-26-0065)
 
 ### Data availability:
 Counts matrix for RNA and ATAC seq are found in the Data folder of this repository.
